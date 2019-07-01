@@ -16,7 +16,7 @@ stderr_show()
 {
     if [ -v stderrfd ]; then
         exec 2>&$stderrfd
-        exec $stderrfd>&-
+        exec {stderrfd}>&-
         unset stderrfd
     fi
 }
