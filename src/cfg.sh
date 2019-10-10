@@ -1,6 +1,6 @@
 declare -A CFG
 
-parsecfg()
+cfg_parse()
 {
     # TODO: Error out on invalid lines
     local cfg_path=$1
@@ -19,20 +19,20 @@ parsecfg()
     done < "$cfg_path"
 }
 
-resetcfg()
+cfg_reset()
 {
     unset CFG
     declare -A CFG
     export CFG
 }
 
-getvar()
+cfg_get()
 {
     local varname=$1
     printf '%s' "${CFG[$varname]}"
 }
 
-getvar_lower()
+cfg_getlower()
 {
     local varname=$1
     printf '%s' "${CFG[$varname]}" | tr '[:upper:]' '[:lower:]'
