@@ -12,7 +12,7 @@ test_print()
     local suite_name_maxlen=20
     local func_name_maxlen=25
     local prefix_suite=$(printf "%-${suite_name_maxlen}s%s" "$(print_color -bc cyan "$TEST_SUITE_NAME")" "$(print_color -bc cyan ':')")
-    local prefix_func=$(printf "%-${func_name_maxlen}s%s" "$(print_color -bc yellow "$TEST_FUNC_NAME")" "$(print_color -bc yellow ':')")
+    local prefix_func=$(printf "%-${func_name_maxlen}s%s" "$(print_color -bc magenta "$TEST_FUNC_NAME")" "$(print_color -bc magenta ':')")
     local prefix="$prefix_suite $prefix_func"
     shift
 
@@ -21,8 +21,12 @@ test_print()
                 local prefix="$prefix $(print_color -c green '+')"
                 local item="$*"
         ;;
+        warn)
+                local prefix="$prefix $(print_color -c yellow '*')"
+                local item="$*"
+        ;;
         error)
-                local prefix="$prefix $(print_color -bc red 'x')"
+                local prefix="$prefix $(print_color -bc red '!')"
                 local item=$(print_color -c red "$*")
         ;;
     esac
@@ -47,6 +51,7 @@ enter_suite_header()
     stderr_hide
     printf '%s\n' "$(test_print error 'THIS SHOULD NOT PRINT')" >&2
     print_e "$(test_print info 'This message prints after stderr_hide')"
+
     test_set_func 'stderr_show'
     stderr_show
     printf '%s\n' "$(test_print info 'This message prints after stderr_show')" >&2
