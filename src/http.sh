@@ -36,9 +36,6 @@ http_rq_post()
         args+=( '--data-urlencode' "$param_name=$(kv $param_key)" )
     done
 
-    echo "args: ${args[*]}"
-    echo "cmd http_rq_session ${args[*]} -X $method $endpoint"
-
     http_rq_session "${args[@]}" -X "$method" "$endpoint"
 }
 
