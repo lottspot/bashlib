@@ -8,11 +8,20 @@ kv()
     local backend=$(kv_backend)
     local kv_func=kv_backend_mem
 
-    if [ "$backend" != ':mem:' ]; then
-        kv_func=kv_backend_fs
-    fi
+    test "$backend" = ':mem:' || kv_func=kv_backend_fs
 
     $kv_func "$key" "$val"
+}
+
+kv_purge()
+{
+    local pattern=$1
+    local backend=$(kv_backend)
+    local purge_func=kv_purge_mem
+
+    test "$backend" = ':mem:' || purge_func=kv_purge_fs
+
+    $purge_func "$pattern"
 }
 
 kv_backend()
@@ -58,4 +67,20 @@ kv_backend_fs()
         # Getter
         printf '%s' "$(cat "$fs_path" 2>/dev/null)"
     fi
+}
+
+kv_purge_fs()
+{
+    local pattern=$1
+    local fs_dir=$BASHLIB_KV_PATH
+    rm -f "$fs_dir/"$pattern
+}
+
+kv_purge_mem()
+{
+    local pattern=$1
+    for key in "${!KV_MEM[@]}"; do
+        [[ $key == $pattern ]] && unset KV_MEM[$key]
+    done
+    return 0
 }
