@@ -1,3 +1,8 @@
+#
+# DEPENDENCIES:
+# util.sh
+#
+
 declare -A CFG
 
 cfg_parse()
@@ -13,7 +18,7 @@ cfg_parse()
         else
             line=${line%% #*} # strip inline comments
             key=$(printf '%s' ${line%%=*}  | tr [:upper:] [:lower:]) # keys case insensitive
-            val=$(printf '%s' "${line#*=}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//') # trim leading & trailing whitespace
+            val=$(trim "${line#*=}")
             CFG[$key]=$val
         fi
     done < "$cfg_path"
