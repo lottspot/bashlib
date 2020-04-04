@@ -1,7 +1,18 @@
-#
-# DEPENDENCIES:
-# util.sh
-#
+cfg_depends=(
+    trim
+)
+
+for dep in "${cfg_depends[@]}"; do
+    if ! type $dep >/dev/null 2>&1; then
+        if [ "$(basename "${BASH_SOURCE[0]}")" = 'cfg.sh' ]; then
+            printf '%s load error: missing dependency: %s\n' 'cfg.sh' "$dep" >&2
+            return 1
+        else
+            printf '%s load error: missing dependency: %s\n' "$0" "$dep" >&2
+            exit 1
+        fi
+    fi
+done
 
 declare -A CFG
 
