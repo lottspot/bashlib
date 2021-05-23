@@ -1,22 +1,3 @@
-http_depends=(
-    curl
-    trim
-    kv
-    kv_purge
-)
-
-for dep in "${http_depends[@]}"; do
-    if ! type $dep >/dev/null 2>&1; then
-        if [ "$(basename "${BASH_SOURCE[0]}")" = 'http.sh' ]; then
-            printf '%s load error: missing dependency: %s\n' 'http.sh' "$dep" >&2
-            return 1
-        else
-            printf '%s load error: missing dependency: %s\n' "$0" "$dep" >&2
-            exit 1
-        fi
-    fi
-done
-
 # send an http POST request with data
 # provided from kv store.
 # uses/stores cookies.

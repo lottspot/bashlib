@@ -11,5 +11,6 @@ join_lines()
 trim()
 {
     s=$1
-    printf '%s' "$s" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+    [[ $s =~ ^[[:space:]]*(.*[^[:space:]])[[:space:]]*$ ]]
+    printf '%s' "${BASH_REMATCH[1]}"
 }
