@@ -1,0 +1,111 @@
+#!/bin/sh
+set -e
+
+#
+# Functions
+#
+
+append()
+{
+  __list=$1
+  __item=$2
+
+    if [ $(printf '%s\n' "$__list" | grep -Ec "(^| )$__item( |$)") -eq 0 ]; then
+      if [ "$__list" ]; then
+        __list="$__list $__item"
+      else
+        __list="$__item"
+      fi
+    fi
+
+  printf '%s\n' "$__list"
+}
+
+srcs()
+{
+  _spec=$1
+  _mod=${_spec%%/*}
+  _submod=
+
+  if [ $(printf '%s\n' "$_spec" | grep -c /) -gt 0 ]; then
+    _submod=${_spec#*/}
+  fi
+
+  if [ -z "$_spec" ]; then
+    printf '%s\n' "$SRCLIST"
+    return
+  fi
+
+  test -n "$_submod" || _submod='*'
+  find src/$_mod -name $_submod.sh
+}
+
+deptree()
+(
+  spec=$1
+  mod=${spec%%/*}
+  ini=$(find src/$mod -name mod.ini)
+  submod=
+
+  if [ $(printf '%s\n' "$spec" | grep -c /) -gt 0 ]; then
+    submod=${spec#*/}
+  fi
+
+  srcs "$spec"
+
+  section_submod=
+  section_deptype=
+  while read line; do
+    case $line in
+      '['*) section_name=$(printf '%s' "$line" | sed -E 's/\[([^]]*)\]/\1/g')
+            section_submod=${section_name%.*}
+            section_deptype=${section_name#*.}
+         ;;
+         *) if [ "$section_submod" = "$submod" ] || [ -z "$submod" ]; then
+              if [ "$section_deptype" = 'mods' ]; then
+                set -- $line
+                test -z "$1" || deptree "$1"
+              fi
+            fi
+         ;;
+    esac
+  done < $ini
+)
+
+#
+# Parse args
+#
+
+for arg in $@; do
+  case $arg in
+    modlist=*)
+      MODLIST_ORIG=${arg#*=}
+      MODLIST=$(printf '%s' "$MODLIST_ORIG" | sed 's/,/ /g')
+      test -n "$MODLIST" || MODLIST=$(find src -name mod.ini -exec dirname {} \; | xargs -L 1 basename | xargs)
+    ;;
+    depcheck=*)
+      DEPCHECK=${arg#*=}
+    ;;
+  esac
+done
+
+#
+# Walk dependency trees
+#
+
+SRCLIST=
+for MOD in $MODLIST; do
+  for SRC in $(deptree $MOD); do
+    SRCLIST=$(append "$SRCLIST" $SRC)
+  done
+done
+
+#
+# Gen config
+#
+
+printf 'MODLIST      := %s\n' "$MODLIST"
+printf 'DEPCHECK     := %s\n' "$DEPCHECK"
+printf 'BASHLIB_SRCS := %s\n' "$SRCLIST"
+printf 'modlist      ?= %s\n' "$MODLIST_ORIG"
+printf 'depcheck     ?= %s\n' "$DEPCHECK"

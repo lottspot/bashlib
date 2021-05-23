@@ -1,0 +1,124 @@
+#!/bin/sh
+set -e
+
+#
+# Functions
+#
+
+append()
+{
+  __list=$1
+  __item=$2
+
+    if [ $(printf '%s\n' "$__list" | grep -Ec "(^| )$__item( |$)") -eq 0 ]; then
+      if [ "$__list" ]; then
+        __list="$__list $__item"
+      else
+        __list="$__item"
+      fi
+    fi
+
+  printf '%s\n' "$__list"
+}
+
+cmdtree()
+(
+  spec=$1
+  mod=${spec%%/*}
+  ini=$(find src/$mod -name mod.ini)
+  submod=
+
+  if [ $(printf '%s\n' "$spec" | grep -c /) -gt 0 ]; then
+    submod=${spec#*/}
+  fi
+
+  section_submod=
+  section_deptype=
+  while read line; do
+    case $line in
+      '['*) section_name=$(printf '%s' "$line" | sed -E 's/\[([^]]*)\]/\1/g')
+            section_submod=${section_name%.*}
+            section_deptype=${section_name#*.}
+         ;;
+         *) if [ "$section_submod" = "$submod" ] || [ -z "$submod" ]; then
+              case $section_deptype in
+                mods) set -- $line
+                      test -z "$1" || cmdtree "$1"
+                ;;
+                cmds) set -- $line
+                      test -z "$1" || printf '%s\n' "$1"
+                ;;
+              esac
+            fi
+         ;;
+    esac
+  done < $ini
+)
+
+#
+# Parse args
+#
+
+for arg in $@; do
+  case $arg in
+    modlist=*)
+      MODLIST=${arg#*=}
+      MODLIST=$(printf '%s' "$MODLIST" | sed 's/,/ /g')
+      test -n "$MODLIST" || MODLIST=$(find src -name mod.ini -exec dirname {} \; | xargs -L 1 basename | xargs)
+    ;;
+    mode=*)
+      MODE=${arg#*=}
+    ;;
+  esac
+done
+
+#
+# Walk dependency trees
+#
+
+case $MODE in
+  warn|exit|return) ;;
+                 *) exit 0;;
+esac
+
+CMDLIST=
+for MOD in $MODLIST; do
+  for CMD in $(cmdtree $MOD); do
+    CMDLIST=$(append "$CMDLIST" $CMD)
+  done
+done
+
+#
+# Gen depcheck
+#
+
+cat <<EOF
+BASHLIB_UNSATISFIED=()
+for cmd in $CMDLIST; do
+EOF
+
+cat <<'EOF'
+  if ! type -t ${cmd##*/} > /dev/null; then
+    BASHLIB_UNSATISFIED+=("$cmd")
+  fi
+done
+
+if [ ${#BASHLIB_UNSATISFIED} -gt 0 ]; then
+  printf 'bashlib: required commands not found: %s\n' "${BASHLIB_UNSATISFIED[*]}" >&2
+EOF
+
+case $MODE in
+    exit) cat <<-'EOF'
+	  exit 1
+	EOF
+    ;;
+  return) cat <<-'EOF'
+	  return
+	EOF
+    ;;
+esac
+
+cat <<'EOF'
+fi
+
+EOF
